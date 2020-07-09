@@ -226,9 +226,14 @@ def _generator_from_tfds(
             )
 
         ds = dataset_map[ds_name](ds_name, ds_version, split_type, epochs)
-        generator = torch.utils.data.DataLoader(
-            ds, batch_size=batch_size, num_workers=0
-        )
+        if variable_length and batch_size > 1:
+            logger.warning("Inputs are non-uniform size. Reverting to batch size 1.")
+            generator = torch.utils.data.DataLoader(ds, batch_size=1, num_workers=0)
+        else:
+            generator = torch.utils.data.DataLoader(
+                ds, batch_size=batch_size, num_workers=0
+            )
+
     else:
         default_graph = tf.compat.v1.keras.backend.get_session().graph
 
@@ -280,7 +285,6 @@ def _generator_from_tfds(
 
         elif framework == "tf":
             generator = ds
-
         else:
             raise ValueError(
                 f"`framework` must be one of ['tf', 'pytorch', 'numpy']. Found {framework}"
@@ -613,7 +617,9 @@ def _get_pytorch_dataset_map():
     import armory.data.pytorch_loaders as ptl
 
     return {
-        "cifar10": ptl.ImageTFRecordDataSet,
         "mnist": ptl.ImageTFRecordDataSet,
+        "cifar10": ptl.ImageTFRecordDataSet,
+        "imagenette/full-size": ptl.ImageTFRecordDataSet,
+        "german_traffic_sign": ptl.ImageTFRecordDataSet,
         "resisc45_split": ptl.ImageTFRecordDataSet,
     }
