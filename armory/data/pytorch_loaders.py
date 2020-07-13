@@ -63,8 +63,9 @@ class ImageTFRecordDataSet(torch.utils.data.IterableDataset):
 
 
 class RawTFRecordDataSet(torch.utils.data.IterableDataset):
-    def __init__(self, dataset_name, dataset_ver, split, epochs):
+    def __init__(self, dataset_name, dataset_ver, split, epochs, features):
         self.data_files = locate_data(dataset_name, dataset_ver, split)
+        self.features = features
         self.epochs = epochs
 
     def preprocess(self, x):
@@ -92,9 +93,3 @@ class RawTFRecordDataSet(torch.utils.data.IterableDataset):
             iters.append(decoded_iter)
 
         return chain(*iters)
-
-
-class AudioTFRecordDataSet(RawTFRecordDataSet):
-    def __init__(self, dataset_name, dataset_ver, split, epochs):
-        super().__init__(dataset_name, dataset_ver, split, epochs)
-        self.features = {"audio": "data", "label": "label"}

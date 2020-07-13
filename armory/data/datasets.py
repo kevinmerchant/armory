@@ -219,13 +219,7 @@ def _generator_from_tfds(
             )
 
         ds_name, ds_version = dataset_name.split(":")
-        dataset_map = _get_pytorch_dataset_map()
-        if ds_name not in dataset_map.keys():
-            raise NotImplementedError(
-                f"PyTorch DataLoader for `{ds_name}` not yet available."
-            )
-
-        ds = dataset_map[ds_name](ds_name, ds_version, split_type, epochs)
+        ds = _get_pytorch_dataset(ds_name, ds_version, split_type, epochs)
         if variable_length and batch_size > 1:
             logger.warning("Inputs are non-uniform size. Reverting to batch size 1.")
             generator = torch.utils.data.DataLoader(ds, batch_size=1, num_workers=0)
@@ -613,14 +607,42 @@ def _download_data(dataset_name):
         logger.exception(f"Loading dataset {dataset_name} failed.")
 
 
-def _get_pytorch_dataset_map():
+def _get_pytorch_dataset(ds_name, ds_version, split_type, epochs):
     import armory.data.pytorch_loaders as ptl
 
-    return {
+    dataset_map = {
         "mnist": ptl.ImageTFRecordDataSet,
         "cifar10": ptl.ImageTFRecordDataSet,
-        "digit": ptl.AudioTFRecordDataSet,
+        "digit": ptl.RawTFRecordDataSet,
         "imagenette/full-size": ptl.ImageTFRecordDataSet,
         "german_traffic_sign": ptl.ImageTFRecordDataSet,
         "resisc45_split": ptl.ImageTFRecordDataSet,
+        "librispeech_dev_clean_split/plain_text": ptl.RawTFRecordDataSet,
     }
+
+    features_map = {
+        "mnist": None,
+        "cifar10": None,
+        "digit": {"audio": "data", "label": "label"},
+        "imagenette/full-size": None,
+        "german_traffic_sign": None,
+        "resisc45_split": None,
+        "librispeech_dev_clean_split/plain_text": {
+            "speech": "data",
+            "speaker_id": "label",
+        },
+    }
+
+    if ds_name not in dataset_map.keys():
+        raise NotImplementedError(
+            f"PyTorch DataLoader for `{ds_name}` not yet available."
+        )
+
+    if features_map[ds_name] is not None:
+        ds = dataset_map[ds_name](
+            ds_name, ds_version, split_type, epochs, features_map[ds_name]
+        )
+    else:
+        ds = dataset_map[ds_name](ds_name, ds_version, split_type, epochs)
+
+    return ds
