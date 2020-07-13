@@ -8,6 +8,7 @@ import dareblopy as db
 from PIL import Image
 from io import BytesIO
 import numpy as np
+import tensorflow as tf
 
 from armory import paths
 
@@ -54,7 +55,46 @@ class ImageTFRecordDataSet(torch.utils.data.IterableDataset):
                 buffer_size=32,
                 seed=randint(0, 10000),
             )
+
             decoded_iter = map(self.preprocess, loader)
             iters.append(decoded_iter)
 
         return chain(*iters)
+
+
+class RawTFRecordDataSet(torch.utils.data.IterableDataset):
+    def __init__(self, dataset_name, dataset_ver, split, epochs):
+        self.data_files = locate_data(dataset_name, dataset_ver, split)
+        self.epochs = epochs
+
+    def preprocess(self, x):
+        example = tf.train.Example()
+        example.ParseFromString(x[0])
+        fields = example.features.feature.items().__iter__()
+        res = {}
+        for k, v in fields:
+            if k in self.features.keys():
+                res[self.features[k]] = np.asarray(v.int64_list.value)
+
+        label = res["label"]
+        audio = res["data"]
+        return label, audio
+
+    def __iter__(self):
+        iters = []
+        for _ in range(self.epochs):
+
+            # Note this is shuffled by default
+            loader = db.TFRecordsDatasetIterator(
+                self.data_files, batch_size=1, buffer_size=32, seed=randint(0, 10000),
+            )
+            decoded_iter = map(self.preprocess, loader)
+            iters.append(decoded_iter)
+
+        return chain(*iters)
+
+
+class AudioTFRecordDataSet(RawTFRecordDataSet):
+    def __init__(self, dataset_name, dataset_ver, split, epochs):
+        super().__init__(dataset_name, dataset_ver, split, epochs)
+        self.features = {"audio": "data", "label": "label"}

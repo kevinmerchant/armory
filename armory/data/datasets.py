@@ -619,6 +619,7 @@ def _get_pytorch_dataset_map():
     return {
         "mnist": ptl.ImageTFRecordDataSet,
         "cifar10": ptl.ImageTFRecordDataSet,
+        "digit": ptl.AudioTFRecordDataSet,
         "imagenette/full-size": ptl.ImageTFRecordDataSet,
         "german_traffic_sign": ptl.ImageTFRecordDataSet,
         "resisc45_split": ptl.ImageTFRecordDataSet,
