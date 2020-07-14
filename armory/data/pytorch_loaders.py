@@ -75,11 +75,18 @@ class RawTFRecordDataSet(torch.utils.data.IterableDataset):
         res = {}
         for k, v in fields:
             if k in self.features.keys():
-                res[self.features[k]] = np.asarray(v.int64_list.value)
+                if self.features[k][0] == "array":
+                    res[self.features[k][1]] = np.asarray(v.int64_list.value)
+                elif self.features[k][0] == "frames":
+                    video = v.bytes_list.value
+                    res[self.features[k][1]] = np.stack(
+                        [np.array(Image.open(BytesIO(frame))) for frame in video],
+                        axis=0,
+                    )
 
         label = res["label"]
-        audio = res["data"]
-        return label, audio
+        data = res["data"]
+        return label, data
 
     def __iter__(self):
         iters = []

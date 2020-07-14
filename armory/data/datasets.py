@@ -618,26 +618,27 @@ def _get_pytorch_dataset(ds_name, ds_version, split_type, epochs):
         "german_traffic_sign": ptl.ImageTFRecordDataSet,
         "resisc45_split": ptl.ImageTFRecordDataSet,
         "librispeech_dev_clean_split/plain_text": ptl.RawTFRecordDataSet,
+        "ucf101/ucf101_1": ptl.RawTFRecordDataSet,
     }
 
     features_map = {
         "mnist": None,
         "cifar10": None,
-        "digit": {"audio": "data", "label": "label"},
+        "digit": {"audio": ("array", "data"), "label": ("array", "label")},
         "imagenette/full-size": None,
         "german_traffic_sign": None,
         "resisc45_split": None,
         "librispeech_dev_clean_split/plain_text": {
-            "speech": "data",
-            "speaker_id": "label",
+            "speech": ("array", "data"),
+            "speaker_id": ("array", "label"),
         },
+        "ucf101/ucf101_1": {"video": ("frames", "data"), "label": ("array", "label")},
     }
 
     if ds_name not in dataset_map.keys():
         raise NotImplementedError(
             f"PyTorch DataLoader for `{ds_name}` not yet available."
         )
-
     if features_map[ds_name] is not None:
         ds = dataset_map[ds_name](
             ds_name, ds_version, split_type, epochs, features_map[ds_name]
